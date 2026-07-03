@@ -1,0 +1,45 @@
+plugins {
+    id 'application'
+}
+
+group = 'kafkacluster'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+dependencies {
+    implementation 'org.apache.kafka:kafka-clients:3.7.0'
+    // Простой логгер, чтобы Kafka не ругался на отсутствие SLF4J-биндинга
+    implementation 'org.slf4j:slf4j-simple:2.0.13'
+}
+
+application {
+    mainClass = 'kafkacluster.consumer.ConsumerApp'
+}
+
+jar {
+    manifest {
+        // Позволяет запускать jar в консоли: java -jar kafkacluster-consumer.jar
+        attributes 'Main-Class': application.mainClass.get()
+    }
+    // Вкладываем зависимости внутрь (fat jar), иначе java -jar не найдёт классы Kafka
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    // Отбрасываем сигнатуры чужих jar, чтобы не ломать проверку целостности архива
+    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA'
+}
+
+run {
+    // Позволяет останавливать приложение по Ctrl+C из консоли
+    standardInput = System.in
+}
